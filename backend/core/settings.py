@@ -27,7 +27,7 @@ class RabbitMQSettings(AppSettings):
     def url(self) -> str:
         return (
             f"amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASSWORD}"
-            f"@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}//",
+            f"@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}//"
         )
 
 
