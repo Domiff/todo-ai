@@ -27,11 +27,11 @@ class HttpClientManager:
         mounts = {}
         if settings.http.PROXY:
             proxy_transport = httpx.AsyncHTTPTransport(
-                proxy=settings.ai.PROXY,
+                proxy=settings.http.PROXY,
                 limits=self.client_limits,
                 verify=settings.http.VERIFY_SSL,
             )
-            mounts = {pattern: proxy_transport for pattern in settings.ai.PROXY_HOSTS}
+            mounts = {pattern: proxy_transport for pattern in settings.http.PROXY_HOSTS}
         return httpx.AsyncClient(
             timeout=self.default_timeout,
             limits=self.client_limits,
