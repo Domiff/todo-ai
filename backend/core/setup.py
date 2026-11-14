@@ -6,6 +6,7 @@ from backend.assistant.router import router as assistant_router
 from backend.core.http import http_client_manager
 from backend.core.settings import settings
 from backend.core.logging import get_logger, setup_logging
+from backend.infrastructures import rabbitmq
 
 logger = get_logger(__name__)
 
@@ -13,11 +14,13 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await http_client_manager.startup()
+    await rabbitmq.connect()
 
     try:
         yield
     finally:
         await http_client_manager.shutdown()
+        await rabbitmq.close()
 
 
 def create_app() -> FastAPI:
