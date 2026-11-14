@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from backend.assistant.router import router as assistant_router
 from backend.core.http import http_client_manager
 from backend.core.settings import settings
 from backend.core.logging import get_logger, setup_logging
@@ -28,5 +29,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         openapi_url="/openapi.json" if settings.app.IS_DEBUG else None,
     )
+    app.include_router(assistant_router)
 
     return app

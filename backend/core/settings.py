@@ -45,6 +45,7 @@ class HTTPSettings(AppSettings):
 class AISettings(AppSettings):
     API_KEY: str
     MODEL: str
+    AI_URL: str
 
 
 class Settings(AppSettings):
