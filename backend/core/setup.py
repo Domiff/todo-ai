@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         await http_client_manager.shutdown()
-        await rabbitmq.close()
+        await rabbitmq.disconnect()
 
 
 def create_app() -> FastAPI:

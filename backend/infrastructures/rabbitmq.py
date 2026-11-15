@@ -50,7 +50,7 @@ async def connect() -> None:
             channel = await connection.channel()
 
 
-async def close() -> None:
+async def disconnect() -> None:
     global connection, channel
 
     if connection is not None and not connection.is_closed:
