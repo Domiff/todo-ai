@@ -1,26 +1,29 @@
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
 
 from backend.assistant.router import router as assistant_router
 from backend.core.http import http_client_manager
-from backend.core.settings import settings
 from backend.core.logging import get_logger, setup_logging
-from backend.infrastructures import rabbitmq
+from backend.core.settings import settings
+from backend.infrastructures import qdrant, rabbitmq
 
 logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await http_client_manager.startup()
-    await rabbitmq.connect()
+    async with AsyncExitStack() as stack:
+        await http_client_manager.startup()
+        stack.push_async_callback(http_client_manager.shutdown)
 
-    try:
+        await rabbitmq.connect()
+        stack.push_async_callback(rabbitmq.disconnect)
+
+        await qdrant.connect()
+        stack.push_async_callback(qdrant.disconnect)
+
         yield
-    finally:
-        await http_client_manager.shutdown()
-        await rabbitmq.disconnect()
 
 
 def create_app() -> FastAPI:

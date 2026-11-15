@@ -48,11 +48,21 @@ class AISettings(AppSettings):
     AI_URL: str
 
 
+class QdrantSettings(AppSettings):
+    QDRANT_HOST: str
+    QDRANT_PORT: int
+
+    @property
+    def url(self) -> str:
+        return f"http://{self.QDRANT_HOST}:{self.QDRANT_PORT}"
+
+
 class Settings(AppSettings):
     app: AppSettings = AppSettings()
     rabbit: RabbitMQSettings = RabbitMQSettings()
     http: HTTPSettings = HTTPSettings()
     ai: AISettings = AISettings()
+    qdrant: QdrantSettings = QdrantSettings()
 
 
 settings = Settings()
