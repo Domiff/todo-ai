@@ -2,7 +2,7 @@ from qdrant_client import AsyncQdrantClient, models
 
 from backend.core.settings import settings
 from backend.infrastructures.qdrant import get_client
-from backend.rag.schemas import TaskData, SearchResult
+from backend.rag.schemas import SearchResult, TaskData
 
 
 class QdrantStore:
@@ -75,7 +75,7 @@ class QdrantStore:
             ],
         )
 
-    async def update_payload(self, task: TaskData):
+    async def update_payload(self, task: TaskData) -> None:
         exists = await self.client.retrieve(
             collection_name=self.collection,
             ids=[task.task_id],

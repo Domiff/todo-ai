@@ -1,6 +1,13 @@
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel
+
+
+class TaskEventTypes(StrEnum):
+    CREATED_EVENT = "todo.task.created.v1"
+    UPDATED_EVENT = "todo.task.updated.v1"
+    DELETED_EVENT = "todo.task.deleted.v1"
 
 
 class TaskData(BaseModel):
@@ -12,10 +19,6 @@ class TaskData(BaseModel):
     deadline: datetime
     priority: int = 2
     category: str = ""
-
-    @classmethod
-    def from_bytes(cls, body: bytes):
-        return cls.model_validate_json(body)
 
     def to_text(self) -> str:
         parts = [self.title]
