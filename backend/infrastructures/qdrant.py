@@ -1,8 +1,10 @@
 from qdrant_client import AsyncQdrantClient
 
+from backend.core.logging import get_logger
 from backend.core.settings import settings
 
 client: AsyncQdrantClient | None = None
+logger = get_logger(name=__name__)
 
 
 async def connect() -> None:
@@ -12,6 +14,8 @@ async def connect() -> None:
         client = AsyncQdrantClient(url=settings.qdrant.url)
     await client.info()
 
+    logger.info("Connected to Qdrant server")
+
 
 async def disconnect() -> None:
     global client
@@ -19,6 +23,8 @@ async def disconnect() -> None:
     if client is not None:
         await client.close()
     client = None
+
+    logger.info("Disconnected from Qdrant server")
 
 
 def get_client() -> AsyncQdrantClient:

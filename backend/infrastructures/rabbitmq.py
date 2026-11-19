@@ -1,43 +1,82 @@
 import asyncio
-import json
-from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
-from typing import Any
-from uuid import UUID, uuid4
+from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
+from datetime import datetime
+from uuid import UUID
 
 from aio_pika import connect_robust
 from aio_pika.abc import AbstractChannel, AbstractRobustConnection
+from pydantic import BaseModel, ConfigDict
 
+from backend.core.logging import get_logger
 from backend.core.settings import settings
 
-TASKS_EXCHANGE = "todo.ai"
+TASK_QUEUE = "todo.ai"
+Handler = Callable[[bytes], Awaitable[None]]
+logger = get_logger(name=__name__)
 
 connection: AbstractRobustConnection | None = None
 channel: AbstractChannel | None = None
 lock = asyncio.Lock()
 
 
-@dataclass(frozen=True, kw_only=True)
-class Event:
-    specversion: str = "1.0"
-    id: UUID = field(default_factory=uuid4)
-    source: str = "todo-api"
+class Event[DataT: BaseModel](BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    specversion: str
+    id: UUID
+    source: str
     type: str
-    time: datetime = field(default_factory=lambda: datetime.now(UTC))
-    subject: str
-    datacontenttype: str = "application/json"
-    data: Any
+    time: datetime
+    subject: str | None = None
+    datacontenttype: str
+    data: DataT
 
-    @staticmethod
-    def _to_json_value(value: object):
-        if isinstance(value, UUID):
-            return str(value)
-        if isinstance(value, datetime):
-            return value.isoformat()
-        raise TypeError(f"{type(value).__name__} is not JSON serializable")
+    @classmethod
+    def from_bytes(cls, body: bytes) -> Event[DataT]:
+        return cls.model_validate_json(body)
 
-    def to_bytes(self) -> bytes:
-        return json.dumps(asdict(self), default=self._to_json_value).encode()
+
+class _EventType(BaseModel):
+    type: str
+
+
+def get_event_type(body: bytes) -> str:
+    return _EventType.model_validate_json(body).type
+
+
+async def consume(handler: Handler, queue_name: str) -> None:
+    try:
+        channel = get_channel()
+        queue = await channel.get_queue(name=queue_name, ensure=False)
+        await channel.set_qos(prefetch_count=10)
+
+        async with queue.iterator() as iterator:
+            async for message in iterator:
+                try:
+                    async with message.process():
+                        await handler(message.body)
+                except Exception:
+                    logger.exception(
+                        "Failed to handle message",
+                        extra={
+                            "message_id": message.message_id,
+                            "routing_key": message.routing_key,
+                        },
+                    )
+    except Exception:
+        logger.exception("Consumer stopped", extra={"queue": queue_name})
+        raise
+
+
+@asynccontextmanager
+async def consumer(handler: Handler, queue_name: str):
+    task = asyncio.create_task(consume(handler, queue_name))
+    try:
+        yield
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
 
 
 async def connect() -> None:
@@ -49,6 +88,8 @@ async def connect() -> None:
         if channel is None or channel.is_closed:
             channel = await connection.channel()
 
+    logger.info("Connected to RabbitMQ")
+
 
 async def disconnect() -> None:
     global connection, channel
@@ -56,6 +97,8 @@ async def disconnect() -> None:
     if connection is not None and not connection.is_closed:
         await connection.close()
     connection = channel = None
+
+    logger.info("Disconnected from RabbitMQ")
 
 
 def get_channel() -> AbstractChannel:

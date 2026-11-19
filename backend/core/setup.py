@@ -7,6 +7,8 @@ from backend.core.http import http_client_manager
 from backend.core.logging import get_logger, setup_logging
 from backend.core.settings import settings
 from backend.infrastructures import qdrant, rabbitmq
+from backend.rag.handlers import handle_task_event
+from backend.rag.stores import qdrant_store
 
 logger = get_logger(__name__)
 
@@ -22,6 +24,12 @@ async def lifespan(app: FastAPI):
 
         await qdrant.connect()
         stack.push_async_callback(qdrant.disconnect)
+
+        await qdrant_store.ensure_collection()
+
+        await stack.enter_async_context(
+            rabbitmq.consumer(handle_task_event, rabbitmq.TASK_QUEUE)
+        )
 
         yield
 
