@@ -57,12 +57,21 @@ class QdrantSettings(AppSettings):
         return f"http://{self.QDRANT_HOST}:{self.QDRANT_PORT}"
 
 
+class RagSettings(AppSettings):
+    RAG_COLLECTION: str = "tasks"
+    RAG_EMBEDDING_MODEL: str = "Qwen/Qwen3-Embedding-0.6B-Q"
+    RAG_MODELS_DIR: str = str(BASE_DIR / "models")
+    RAG_TOP_K: int = 5
+    RAG_SCORE_THRESHOLD: float | None = None
+
+
 class Settings(AppSettings):
     app: AppSettings = AppSettings()
     rabbit: RabbitMQSettings = RabbitMQSettings()
     http: HTTPSettings = HTTPSettings()
     ai: AISettings = AISettings()
     qdrant: QdrantSettings = QdrantSettings()
+    rag: RagSettings = RagSettings()
 
 
 settings = Settings()
