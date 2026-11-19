@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict
 from backend.core.logging import get_logger
 from backend.core.settings import settings
 
-TASK_QUEUE = "todo.ai"
+TASK_QUEUE = "todo-ai.tasks"
 Handler = Callable[[bytes], Awaitable[None]]
 logger = get_logger(name=__name__)
 
