@@ -67,7 +67,7 @@ class RagSettings(AppSettings):
 
 class Settings(AppSettings):
     app: AppSettings = AppSettings()
-    rabbit: RabbitMQSettings = RabbitMQSettings()
+    rabbitmq: RabbitMQSettings = RabbitMQSettings()
     http: HTTPSettings = HTTPSettings()
     ai: AISettings = AISettings()
     qdrant: QdrantSettings = QdrantSettings()

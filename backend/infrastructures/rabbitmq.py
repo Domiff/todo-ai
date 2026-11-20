@@ -84,7 +84,7 @@ async def connect() -> None:
 
     async with lock:
         if connection is None or connection.is_closed:
-            connection = await connect_robust(url=settings.rabbit.url)
+            connection = await connect_robust(url=settings.rabbitmq.url)
         if channel is None or channel.is_closed:
             channel = await connection.channel()
 
