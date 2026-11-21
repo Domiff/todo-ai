@@ -65,6 +65,14 @@ class RagSettings(AppSettings):
     RAG_SCORE_THRESHOLD: float | None = None
 
 
+class UvicornSettings(AppSettings):
+    UVICORN_HOST: str = "0.0.0.0"
+    UVICORN_PORT: int = 8020
+    UVICORN_PROXY_HEADERS: bool = True
+    UVICORN_FORWARDED_ALLOW_IPS: str = "*"
+    UVICORN_ROOT_PATH: str = ""
+
+
 class Settings(AppSettings):
     app: AppSettings = AppSettings()
     rabbitmq: RabbitMQSettings = RabbitMQSettings()
@@ -72,6 +80,7 @@ class Settings(AppSettings):
     ai: AISettings = AISettings()
     qdrant: QdrantSettings = QdrantSettings()
     rag: RagSettings = RagSettings()
+    uvicorn: UvicornSettings = UvicornSettings()
 
 
 settings = Settings()
