@@ -1,0 +1,15 @@
+services:
+  ai:
+    container_name: todo-ai
+    build:
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./models:/app/models
+    restart: unless-stopped
+
+networks:
+  default:
+    external: true
+    name: todo-network
