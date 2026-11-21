@@ -45,7 +45,7 @@ unfixable = []
 "backend/core/settings/__init__.py" = ["F403"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["core"]
+known-first-party = ["backend"]
 combine-as-imports = true
 
 [tool.fastapi]
