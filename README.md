@@ -42,7 +42,13 @@ POST /ai/ask ──► search the user's tasks by meaning ◄──────�
 
 ### Environment variables
 
-Create `.env` in the project root:
+Copy `.env_template` to `.env` in the project root (it is gitignored):
+
+```bash
+cp .env_template .env
+```
+
+The variables:
 
 ```env
 # LLM (OpenRouter)
@@ -78,6 +84,16 @@ Optional RAG settings (`backend/core/settings.py`, `RagSettings`):
 > Changing `RAG_EMBEDDING_MODEL` to a model with another vector size needs a new collection
 > (a different `RAG_COLLECTION`) and re-indexing: an existing collection is not recreated.
 
+Server settings (`UvicornSettings`), all optional:
+
+| Variable                      | Default   | Description                                                   |
+|-------------------------------|-----------|---------------------------------------------------------------|
+| `UVICORN_HOST`                | `0.0.0.0` | address to listen on                                          |
+| `UVICORN_PORT`                | `8020`    | port (todo-api uses 8000, todo-auth 8010)                     |
+| `UVICORN_PROXY_HEADERS`       | `true`    | trust `X-Forwarded-Proto` / `X-Forwarded-For` from a proxy    |
+| `UVICORN_FORWARDED_ALLOW_IPS` | `*`       | which addresses may send these headers                        |
+| `UVICORN_ROOT_PATH`           | empty     | path prefix, if a proxy serves the app under one              |
+
 ### Infrastructure
 
 todo-ai needs, from todo-infrastructure:
@@ -92,16 +108,58 @@ The Qdrant collection and its payload indexes (`user_id`, `completed`) are creat
 
 ```bash
 uv sync
-uv run fastapi dev --port 8090
+uv run python -m backend.main
 ```
 
-The app is `backend.main:app` (`[tool.fastapi]` in `pyproject.toml`). On startup it connects to
+Or with auto-reload for development:
+
+```bash
+uv run fastapi dev --port 8020
+```
+
+`python -m backend.main` starts Uvicorn with the settings above; the app itself is
+`backend.main:app` (`[tool.fastapi]` in `pyproject.toml`). On startup it connects to
 RabbitMQ and Qdrant, creates the collection if needed and starts the queue consumer; if RabbitMQ or
 Qdrant is not reachable, startup fails.
 
 The first indexing or search downloads the embedding model from Hugging Face (~1.1 GB) into
 `RAG_MODELS_DIR`, so it takes a few minutes. Behind a proxy, set `HTTPS_PROXY` in the environment:
 `PROXY` from `.env` is used only by the HTTP client for the LLM.
+
+## Docker Compose
+
+1. Start todo-infrastructure (RabbitMQ with the `todo-ai.tasks` queue and Qdrant).
+
+2. Set the Docker hosts in `.env`: `RABBITMQ_HOST=todo-rabbitmq`, `QDRANT_HOST=todo-qdrant`
+   (as in `.env_template`).
+
+3. Build and start the service:
+   ```bash
+   docker compose up -d --build
+   ```
+
+| Service      | Container | Port                 | Notes                                                          |
+|--------------|-----------|----------------------|----------------------------------------------------------------|
+| AI (Uvicorn) | `todo-ai` | 8020 (not published) | Reachable as `todo-ai:8020` from other services in `todo-network` |
+
+The port is not published and the service is not behind Caddy: `POST /ai/ask` takes `user_id` from
+the request body, so it must stay internal until it is authenticated (see [API](#api)).
+
+The embedding model is not in the image: `./models` is mounted to `/app/models`
+(`RAG_MODELS_DIR`). If the folder is empty, the model is downloaded there on the first indexing or
+search and kept between restarts.
+
+Proxy in Docker:
+
+- `PROXY` must be reachable from the container. `127.0.0.1` or `0.0.0.0` there is the container
+  itself, so point it to the host, e.g. `x` with
+  `extra_hosts: ["host.docker.internal:host-gateway"]` in `docker-compose.yml`, and let the proxy
+  listen on the Docker bridge, not only on `127.0.0.1`.
+- Write values in `.env` without quotes when you start the image with `docker run --env-file`: it
+  keeps the quotes, and `PROXY="http://..."` fails with `Unknown scheme for proxy URL`.
+  `docker compose` strips them.
+- The model download goes through `HTTPS_PROXY`, not `PROXY`; add it to `environment:` if Hugging
+  Face is reachable only through the proxy.
 
 ## API
 
@@ -124,9 +182,9 @@ Interactive docs: `/docs` (only when `IS_DEBUG=true`).
 
 ```
 backend/
-├── main.py                 # app = create_app()
+├── main.py                 # app = create_app(); python -m backend.main runs Uvicorn
 ├── core/
-│   ├── settings.py         # pydantic-settings: app, rabbit, http, ai, qdrant, rag
+│   ├── settings.py         # pydantic-settings: app, rabbitmq, http, ai, qdrant, rag, uvicorn
 │   ├── setup.py            # create_app(), lifespan: connections, collection, consumer
 │   ├── http.py             # shared httpx client (timeouts, limits, proxy per host)
 │   └── logging.py          # JSON logging
@@ -142,6 +200,10 @@ backend/
     ├── schemas.py          # QuestionSchema, AnswerSchema
     ├── services.py         # system prompt, context, LLM request, get_answer
     └── router.py           # POST /ai/ask
+models/                     # embedding model cache (gitignored, mounted in Docker)
+Dockerfile
+docker-compose.yml          # ai service only; infrastructure is in todo-infrastructure
+.env_template
 ```
 
 ## Events (RabbitMQ)
