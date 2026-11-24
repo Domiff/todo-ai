@@ -38,9 +38,9 @@ def build_context(results: list[SearchResult]) -> str:
     return "\n\n".join(f"Задача {r.task_id}:\n{r.text}" for r in results)
 
 
-async def get_answer(question: QuestionSchema) -> str:
+async def get_answer(question: QuestionSchema, user_id: int) -> str:
     results = await qdrant_service.search_tasks(
-        question=question.text, user_id=question.user_id
+        question=question.text, user_id=user_id
     )
     messages = [
         {

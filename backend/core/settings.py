@@ -73,6 +73,12 @@ class UvicornSettings(AppSettings):
     UVICORN_ROOT_PATH: str = ""
 
 
+class AuthSettings(BaseSettings):
+    AUTH_URL: str
+    JWT_PUBLIC_KEY: Path = BASE_DIR / "keys" / "jwt-public.pem"
+    JWT_ALGORITHM: str = "RS256"
+
+
 class Settings(AppSettings):
     app: AppSettings = AppSettings()
     rabbitmq: RabbitMQSettings = RabbitMQSettings()
@@ -81,6 +87,7 @@ class Settings(AppSettings):
     qdrant: QdrantSettings = QdrantSettings()
     rag: RagSettings = RagSettings()
     uvicorn: UvicornSettings = UvicornSettings()
+    auth: AuthSettings = AuthSettings()
 
 
 settings = Settings()
