@@ -163,18 +163,17 @@ Proxy in Docker:
 
 ## API
 
-### `POST /ai/ask`
+### `POST /ai/ask` (protected by JWT)
 
+#### Request
 ```json
-{"user_id": 3, "text": "Do I have tasks about the report?"}
+{"text": "Do I have tasks about the report?"}
 ```
 
+#### Response
 ```json
 {"text": "Yes, task 12: Prepare the weekly report."}
 ```
-
-`user_id` is passed in the request for now; it must come from authentication before the API is
-exposed, otherwise anyone can ask about another user's tasks.
 
 Interactive docs: `/docs` (only when `IS_DEBUG=true`).
 
