@@ -7,6 +7,7 @@ services:
       - .env
     volumes:
       - ./models:/app/models
+      - ./keys/:/app/keys:ro
     restart: unless-stopped
 
 networks:
